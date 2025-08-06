@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Daily Random Item</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      text-align: center;
+      padding: 50px;
+    }
+    h1 {
+      color: #444;
+    }
+    .item {
+      font-size: 2em;
+      color: #6a0dad;
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Today's Item</h1>
+  <div class="item" id="dailyItem">Loading...</div>
+
+  <script>
+    const items = ['SAS Food Court', 'Master Class', 'OST', 'QYABAS', 'Helan Rio'];
+
+    function hashStringToNumber(str) {
+      let hash = 0;
+      for (let i = 0; i < str.length; i++) {
+        hash = str.charCodeAt(i) + ((hash << 5) - hash);
+        hash = hash & hash; // Convert to 32bit integer
+      }
+      return Math.abs(hash);
+    }
+
+    function getDailyItem(dateStr, list) {
+      const hash = hashStringToNumber(dateStr);
+      const index = hash % list.length;
+      return list[index];
+    }
+
+    const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+    const item = getDailyItem(today, items);
+
+    document.getElementById('dailyItem').textContent = item;
+  </script>
+</body>
+</html>
