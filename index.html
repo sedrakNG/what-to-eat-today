@@ -20,6 +20,20 @@
         padding: 0;
       }
 
+      .title {
+        font-size: 6em;
+        color: red;
+        margin-top: 20px;
+        padding: 20px 50px;
+        border-radius: 30px;
+        width: auto;
+        margin: 0;
+        cursor: default;
+        margin-top: -50px;
+        text-shadow: 2px 0 yellow, -2px 0 yellow, 0 2px yellow, 0 -2px yellow,
+          1px 1px yellow, -1px -1px yellow, 1px -1px yellow, -1px 1px yellow;
+      }
+
       .item {
         font-size: 6em;
         color: #d82424;
@@ -41,50 +55,59 @@
     </style>
   </head>
   <body>
+    <div class="title">Օրվա Օբեկտ</div>
     <div class="item" id="item">Loading...</div>
 
-      <script>
-    const items = [
-      'Master Class', 'SAS', 'OST', 'RIO', 'QYABAS!!!','TAWOUK', 'PIT-STOP'
-    ]; // ← this list can be any length >= 7
+    <script>
+      const items = [
+        "Master Class",
+        "SAS",
+        "OST",
+        "RIO",
+        "QYABAS!!!",
+        "TAWOUK",
+        "PIT-STOP",
+      ]; // ← this list can be any length >= 7
 
-    // Get ISO week number
-    function getWeekNumber(date) {
-      const tmp = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
-      const dayNum = tmp.getUTCDay() || 7;
-      tmp.setUTCDate(tmp.getUTCDate() + 4 - dayNum);
-      const yearStart = new Date(Date.UTC(tmp.getUTCFullYear(), 0, 1));
-      return Math.ceil((((tmp - yearStart) / 86400000) + 1) / 7);
-    }
-
-    // Seeded pseudo-random number generator
-    function seededRandom(seed) {
-      let x = Math.sin(seed) * 10000;
-      return x - Math.floor(x);
-    }
-
-    // Shuffle with seed
-    function shuffle(array, seed) {
-      const result = array.slice();
-      for (let i = result.length - 1; i > 0; i--) {
-        const j = Math.floor(seededRandom(seed + i) * (i + 1));
-        [result[i], result[j]] = [result[j], result[i]];
+      // Get ISO week number
+      function getWeekNumber(date) {
+        const tmp = new Date(
+          Date.UTC(date.getFullYear(), date.getMonth(), date.getDate())
+        );
+        const dayNum = tmp.getUTCDay() || 7;
+        tmp.setUTCDate(tmp.getUTCDate() + 4 - dayNum);
+        const yearStart = new Date(Date.UTC(tmp.getUTCFullYear(), 0, 1));
+        return Math.ceil(((tmp - yearStart) / 86400000 + 1) / 7);
       }
-      return result;
-    }
 
-    const today = new Date();
-    const week = getWeekNumber(today);
-    const year = today.getFullYear();
-    const seed = parseInt(`${year}${week}`); // unique seed per week
+      // Seeded pseudo-random number generator
+      function seededRandom(seed) {
+        let x = Math.sin(seed) * 10000;
+        return x - Math.floor(x);
+      }
 
-    const shuffledItems = shuffle(items, seed);
-    const weeklyItems = shuffledItems.slice(0, 7); // Pick first 7 items
+      // Shuffle with seed
+      function shuffle(array, seed) {
+        const result = array.slice();
+        for (let i = result.length - 1; i > 0; i--) {
+          const j = Math.floor(seededRandom(seed + i) * (i + 1));
+          [result[i], result[j]] = [result[j], result[i]];
+        }
+        return result;
+      }
 
-    const dayIndex = today.getDay(); // 0 (Sunday) to 6 (Saturday)
-    const itemForToday = weeklyItems[dayIndex % weeklyItems.length];
+      const today = new Date();
+      const week = getWeekNumber(today);
+      const year = today.getFullYear();
+      const seed = parseInt(`${year}${week}`); // unique seed per week
 
-    document.getElementById('item').textContent = itemForToday;
-  </script>
+      const shuffledItems = shuffle(items, seed);
+      const weeklyItems = shuffledItems.slice(0, 7); // Pick first 7 items
+
+      const dayIndex = today.getDay(); // 0 (Sunday) to 6 (Saturday)
+      const itemForToday = weeklyItems[dayIndex % weeklyItems.length];
+
+      document.getElementById("item").textContent = itemForToday;
+    </script>
   </body>
 </html>
