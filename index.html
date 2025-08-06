@@ -41,30 +41,50 @@
     </style>
   </head>
   <body>
-    <div class="item" id="dailyItem">Loading...</div>
+    <div class="item" id="item">Loading...</div>
 
-    <script>
-      const items = ["Master Class", "SAS", "OST", "QYABAS", "RIO"];
+      <script>
+    const items = [
+      'Master Class', 'SAS', 'OST', 'RIO', 'QYABAS!!!','TAWOUK', 'PIT-STOP'
+    ]; // ← this list can be any length >= 7
 
-      function hashStringToNumber(str) {
-        let hash = 0;
-        for (let i = 0; i < str.length; i++) {
-          hash = str.charCodeAt(i) + ((hash << 5) - hash);
-          hash = hash & hash; // Convert to 32bit integer
-        }
-        return Math.abs(hash);
+    // Get ISO week number
+    function getWeekNumber(date) {
+      const tmp = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+      const dayNum = tmp.getUTCDay() || 7;
+      tmp.setUTCDate(tmp.getUTCDate() + 4 - dayNum);
+      const yearStart = new Date(Date.UTC(tmp.getUTCFullYear(), 0, 1));
+      return Math.ceil((((tmp - yearStart) / 86400000) + 1) / 7);
+    }
+
+    // Seeded pseudo-random number generator
+    function seededRandom(seed) {
+      let x = Math.sin(seed) * 10000;
+      return x - Math.floor(x);
+    }
+
+    // Shuffle with seed
+    function shuffle(array, seed) {
+      const result = array.slice();
+      for (let i = result.length - 1; i > 0; i--) {
+        const j = Math.floor(seededRandom(seed + i) * (i + 1));
+        [result[i], result[j]] = [result[j], result[i]];
       }
+      return result;
+    }
 
-      function getDailyItem(dateStr, list) {
-        const hash = hashStringToNumber(dateStr);
-        const index = hash % list.length;
-        return list[index];
-      }
+    const today = new Date();
+    const week = getWeekNumber(today);
+    const year = today.getFullYear();
+    const seed = parseInt(`${year}${week}`); // unique seed per week
 
-      const today = new Date().toISOString().split("T")[0]; // YYYY-MM-DD
-      const item = getDailyItem(today, items);
+    const shuffledItems = shuffle(items, seed);
+    const weeklyItems = shuffledItems.slice(0, 7); // Pick first 7 items
 
-      document.getElementById("dailyItem").textContent = item;
-    </script>
+    const dayIndex = today.getDay(); // 0 (Sunday) to 6 (Saturday)
+    const itemForToday = weeklyItems[dayIndex % weeklyItems.length];
+
+    document.getElementById('item').textContent = itemForToday;
+  </script>
   </body>
 </html>
