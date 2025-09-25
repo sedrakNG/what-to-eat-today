@@ -52,11 +52,85 @@
           color: #fff;
         }
       }
+
+      .wheel-area {
+        margin-top: 30px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 16px;
+      }
+
+      .wheel-wrapper {
+        position: relative;
+        width: 420px;
+        height: 420px;
+      }
+
+      .wheel {
+        position: absolute;
+        top: 10px;
+        left: 10px;
+        width: 400px;
+        height: 400px;
+        border-radius: 50%;
+        transition: transform 4s cubic-bezier(0.2, 0.8, 0.2, 1);
+        transform: rotate(0deg);
+      }
+
+      .pointer {
+        position: absolute;
+        top: 0;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 0;
+        height: 0;
+        border-left: 18px solid transparent;
+        border-right: 18px solid transparent;
+        border-top: 28px solid #ffd700;
+        filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.5));
+        z-index: 2;
+      }
+
+      .spin-btn {
+        font-size: 1.2rem;
+        padding: 10px 18px;
+        border-radius: 10px;
+        border: 3px solid #d82424;
+        color: #d82424;
+        background-color: rgba(255, 255, 255, 0.9);
+        cursor: pointer;
+        font-weight: bold;
+        transition: background-color 0.3s ease;
+        &:hover(:not(:disabled)) {
+          background-color: #d82424b0;
+          color: #fff;
+        }
+      }
+
+      .spin-btn:disabled {
+        border: 3px solid #e75151;
+        color: #e75151;
+        background-color: rgba(255, 255, 255, 0.9);
+        cursor: not-allowed;
+      }
     </style>
   </head>
   <body>
     <div class="title">Օրվա Օբեկտ</div>
-    <div class="item" id="item">Loading...</div>
+
+    <div class="wheel-area">
+      <div class="wheel-wrapper">
+        <div class="pointer"></div>
+        <canvas
+          id="wheelCanvas"
+          class="wheel"
+          width="400"
+          height="400"
+        ></canvas>
+      </div>
+      <button id="spinBtn" class="spin-btn">Spin</button>
+    </div>
 
     <script>
       const items = [
@@ -107,7 +181,148 @@
       const dayIndex = today.getDay(); // 0 (Sunday) to 6 (Saturday)
       const itemForToday = weeklyItems[dayIndex % weeklyItems.length];
 
-      document.getElementById("item").textContent = itemForToday;
+      // ----- Wheel rendering (Canvas) -----
+      const canvas = document.getElementById("wheelCanvas");
+      const ctx = canvas.getContext("2d");
+      const size = canvas.width; // 400
+      const radius = size / 2; // 200
+      const centerX = radius;
+      const centerY = radius;
+
+      const segmentCount = weeklyItems.length; // usually 7
+      const segAngle = (2 * Math.PI) / segmentCount;
+      const colors = [
+        "#ffcc00",
+        "#ff6b6b",
+        "#4ecdc4",
+        "#c7f464",
+        "#c86dd7",
+        "#45aaf2",
+        "#fd9644",
+      ];
+
+      // Start so that segment 0 center is at the top (pointer at 12 o'clock)
+      const startAngle = (-90 * Math.PI) / 180 - segAngle / 2;
+
+      function drawWheel(labels) {
+        ctx.clearRect(0, 0, size, size);
+        ctx.save();
+        ctx.translate(centerX, centerY);
+
+        for (let i = 0; i < segmentCount; i++) {
+          const from = startAngle + i * segAngle;
+          const to = from + segAngle;
+
+          // Slice
+          ctx.beginPath();
+          ctx.moveTo(0, 0);
+          ctx.arc(0, 0, radius, from, to);
+          ctx.closePath();
+          ctx.fillStyle = colors[i % colors.length];
+          ctx.fill();
+
+          // Text
+          const mid = from + segAngle / 2;
+          ctx.save();
+          ctx.rotate(mid);
+          ctx.translate(radius * 0.68, 0);
+          ctx.rotate(Math.PI / 2);
+          ctx.fillStyle = "#1a1a1a";
+          ctx.font = "bold 16px sans-serif";
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          const label = labels[i];
+          // Trim long labels
+          const display = label.length > 16 ? label.slice(0, 15) + "…" : label;
+          ctx.fillText(display, 0, 0);
+          ctx.restore();
+        }
+
+        // Center hub
+        ctx.beginPath();
+        ctx.arc(0, 0, 30, 0, 2 * Math.PI);
+        ctx.fillStyle = "#ffffff";
+        ctx.fill();
+        ctx.lineWidth = 4;
+        ctx.strokeStyle = "#d82424";
+        ctx.stroke();
+
+        ctx.restore();
+      }
+
+      drawWheel(weeklyItems);
+
+      // ----- Spin logic -----
+      const spinBtn = document.getElementById("spinBtn");
+      const wheelEl = canvas; // rotate the canvas element itself
+
+      function getTodayKey() {
+        const y = today.getFullYear();
+        const m = String(today.getMonth() + 1).padStart(2, "0");
+        const d = String(today.getDate()).padStart(2, "0");
+        return `${y}-${m}-${d}`;
+      }
+
+      const storageKey = "wheel-spin-v2";
+      const todayKey = getTodayKey();
+
+      function targetIndexForToday() {
+        return weeklyItems.findIndex((v) => v === itemForToday);
+      }
+
+      function computeTargetRotationDeg(index) {
+        const segDeg = 360 / segmentCount;
+        // Segment center k is at -90 + k*segDeg degrees initially.
+        // To bring it back to -90 (12 o'clock) under the pointer after rotation R:
+        // -90 + k*segDeg + R = -90  =>  R = -k*segDeg
+        const base = -index * segDeg;
+        const extraTurns = 5 * 360; // nice spin
+        return extraTurns + base;
+      }
+
+      function restoreIfAlreadySpun() {
+        try {
+          const raw = localStorage.getItem(storageKey);
+          if (!raw) return false;
+          const data = JSON.parse(raw);
+          if (data.date !== todayKey) return false;
+          if (typeof data.angle !== "number") return false;
+          // Restore angle and disable
+          wheelEl.style.transform = `rotate(${data.angle}deg)`;
+          spinBtn.disabled = true;
+          spinBtn.textContent = "Come back tomorrow";
+          return true;
+        } catch (_) {
+          return false;
+        }
+      }
+
+      function persistSpin(angleDeg) {
+        const data = { date: todayKey, angle: angleDeg };
+        try {
+          localStorage.setItem(storageKey, JSON.stringify(data));
+        } catch (_e) {}
+      }
+
+      const already = restoreIfAlreadySpun();
+
+      if (!already) {
+        spinBtn.disabled = false;
+        spinBtn.textContent = "Spin";
+      }
+
+      spinBtn.addEventListener("click", () => {
+        if (spinBtn.disabled) return;
+        const idx = targetIndexForToday();
+        const targetAngle = computeTargetRotationDeg(idx);
+        // Kick off animation
+        requestAnimationFrame(() => {
+          wheelEl.style.transform = `rotate(${targetAngle}deg)`;
+        });
+        spinBtn.disabled = true;
+        spinBtn.textContent = "Good luck!";
+        persistSpin(targetAngle);
+      });
     </script>
   </body>
 </html>
